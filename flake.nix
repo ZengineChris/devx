@@ -10,15 +10,22 @@
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, ... }:
+  outputs = {
+    self,
+    nixpkgs,
+    flake-utils,
+    ...
+  }:
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
-      
+
       devx = pkgs.buildGoModule {
         pname = "devx";
         version = "0.1.0";
         src = ./.;
+        proxyVendor = true;
         vendorHash = null;
+        buildFlags = ["-mod=vendor"];
       };
     in {
       packages = {
