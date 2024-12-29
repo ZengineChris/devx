@@ -19,13 +19,22 @@
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
 
-      devx = pkgs.buildGoModule {
+      devx = pkgs.buildGo123Module {
         pname = "devx";
         version = "0.1.0";
         src = ./.;
-        proxyVendor = true;
         vendorHash = null;
-        buildFlags = ["-mod=vendor"];
+        CGO_ENABLED = 1;
+        subPackages = ["cmd/devx"];
+
+        # `nix-build` has .git folder but `nix build` does not, this caters for both cases
+        preConfigure = ''
+          export VERSION="$(git describe --tags --always || echo nix-build-at-"$(date +%s)")"
+          export REVISION="$(git rev-parse HEAD || echo nix-unknown)"
+          ldflags="-X github.com/zenginechris/devx/config.appVersion=$VERSION
+                    -X github.com/zenginechris/devx/config.revision=$REVISION"
+        '';
+
       };
     in {
       packages = {
@@ -36,6 +45,7 @@
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = with pkgs; [
           go_1_23
+          git
           gotools
           golangci-lint
           gopls

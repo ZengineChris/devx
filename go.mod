@@ -1,4 +1,4 @@
-module github.com/ZengineChris/devx
+module github.com/zenginechris/devx
 
 go 1.23
 
