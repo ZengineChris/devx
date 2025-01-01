@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/ZengineChris/devx/internal/projects"
+	"github.com/zenginechris/devx/internal/projects"
 	"github.com/pelletier/go-toml/v2"
 )
 

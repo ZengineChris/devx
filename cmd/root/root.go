@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/ZengineChris/devx/config"
+	"github.com/zenginechris/devx/config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )

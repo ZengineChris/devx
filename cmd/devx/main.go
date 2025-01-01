@@ -1,8 +1,8 @@
 package main
 
 import (
-	_ "github.com/ZengineChris/devx/cmd"
-	"github.com/ZengineChris/devx/cmd/root"
+	_ "github.com/zenginechris/devx/cmd"
+	"github.com/zenginechris/devx/cmd/root"
 )
 
 func main() {

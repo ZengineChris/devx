@@ -5,9 +5,9 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/ZengineChris/devx/cmd/root"
-	"github.com/ZengineChris/devx/config"
-	"github.com/ZengineChris/devx/internal/projects"
+	"github.com/zenginechris/devx/cmd/root"
+	"github.com/zenginechris/devx/config"
+	"github.com/zenginechris/devx/internal/projects"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
