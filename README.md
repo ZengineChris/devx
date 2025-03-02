@@ -1,8 +1,6 @@
 # DevX
 
-DevX is an opiniadet way for local development of projects running on kubernetes. 
-The idea is to have a tool that makes it easy to build an service and run it 
-in a local installtion of a project. 
+DevX is an opinionated way for local development of projects running on kubernetes. The idea is to have a tool that makes it easy to build a service and run it in a local installation of a project.
 
 ## Workflow 
 
