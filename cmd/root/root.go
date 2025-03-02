@@ -4,29 +4,23 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/zenginechris/devx/config"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+	"github.com/zenginechris/devx/config"
 )
 
 var rootCmd = &cobra.Command{
 	Use:     "devx",
-	Short:   "opiniated local develepment",
+	Short:   "Opiniated local develepment",
 	Version: config.AppVersion().Version,
-	Run: func(cmd *cobra.Command, args []string) {
-		logrus.Warn("here")
-	},
+	Run:     func(cmd *cobra.Command, args []string) {},
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-
 		fmt.Println(cmd.Name())
-
 		if err := initLog(); err != nil {
 			return err
 		}
-
 		cmd.SilenceUsage = true
 		cmd.SilenceErrors = true
-
 		return nil
 	},
 }

@@ -118,6 +118,17 @@ var (
 			return filepath.Join(dir, "_templates"), nil
 		},
 	}
+
+
+	projectsDir = requiredDir{
+		dir: func() (string, error) {
+			dir, err := configBaseDir.dir()
+			if err != nil {
+				return "", err
+			}
+			return filepath.Join(dir, "projects"), nil
+		},
+	}
 )
 
 // CacheDir returns the cache directory.
@@ -125,5 +136,8 @@ func CacheDir() string { return cacheDir.Dir() }
 
 // TemplatesDir returns the templates' directory.
 func TemplatesDir() string { return templatesDir.Dir() }
+
+
+func ProjectsDir() string { return projectsDir.Dir() }
 
 const configFileName = "devx.toml"
