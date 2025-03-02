@@ -1,4 +1,4 @@
-#DevX
+# DevX
 
 DevX is an opiniadet way for local development of projects running on kubernetes. 
 The idea is to have a tool that makes it easy to build an service and run it 
@@ -8,21 +8,21 @@ in a local installtion of a project.
 
 First you have to creat one or more projects by runnig this command:
 ```shell
-devx project create <name>
+devx create <name>
 ```
 You can list all of your projects with
 ```shell
-devx project list
+devx list
 ```
 
 Next you can set the build context of a project with: 
 ```shell
-devx project <name> context
+devx <name> context
 ```
 This will set the current folder as the build context for the project. 
 You can also set the context by providing a path to the command like so:
 ```shell
-devx project <name> context <path>
+devx <name> context <path>
 ```
 
 ## Install (MacOS with brew)
