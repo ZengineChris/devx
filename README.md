@@ -1,4 +1,6 @@
 # DevX
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FZengineChris%2Fdevx.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FZengineChris%2Fdevx?ref=badge_shield)
+
 
 DevX is an opinionated way for local development of projects running on kubernetes. The idea is to have a tool that makes it easy to build a service and run it in a local installation of a project.
 
@@ -53,3 +55,7 @@ colima start --cpu 8 --memory 26 --disk 50 --vm-type=vz --vz-rosetta --runtime d
 
 
 
+
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FZengineChris%2Fdevx.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FZengineChris%2Fdevx?ref=badge_large)
