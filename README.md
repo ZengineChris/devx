@@ -47,6 +47,7 @@ colima start --cpu 8 --memory 26 --disk 50 --vm-type=vz --vz-rosetta --runtime d
 ```
 
 
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FZengineChris%2Fdevx.svg?type=shield&issueType=license)](https://app.fossa.com/projects/git%2Bgithub.com%2FZengineChris%2Fdevx?ref=badge_shield&issueType=license)
 
 
 
