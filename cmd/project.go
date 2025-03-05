@@ -29,6 +29,7 @@ func init() {
 	root.Cmd().AddCommand(setProjectContextCmd)
 	root.Cmd().AddCommand(buildProjectCmd)
 	root.Cmd().AddCommand(editProjectCmd)
+    root.Cmd().AddCommand(createProjectCmd)
 }
 
 var listProjectsCmdArgs struct {

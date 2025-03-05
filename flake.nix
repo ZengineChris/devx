@@ -8,12 +8,17 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
+    nur = {
+      url = "github:nix-community/NUR";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs = {
     self,
     nixpkgs,
     flake-utils,
+    nur,
     ...
   }:
     flake-utils.lib.eachDefaultSystem (system: let
@@ -34,7 +39,6 @@
           ldflags="-X github.com/zenginechris/devx/config.appVersion=$VERSION
                     -X github.com/zenginechris/devx/config.revision=$REVISION"
         '';
-
       };
     in {
       packages = {
@@ -48,9 +52,11 @@
           git
           gotools
           golangci-lint
+          go-task
           gopls
           go-outline
           gopkgs
+          nur.repos.goreleaser.goreleaser
         ];
 
         shellHook = ''

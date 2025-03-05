@@ -5,3 +5,6 @@
 .DS_Store
 .vscode/
 .direnv/
+# Added by goreleaser init:
+dist/
+.env
