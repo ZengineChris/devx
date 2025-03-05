@@ -13,4 +13,7 @@ tasks:
     cmds:
       - export GIT_TAG="${git describe --tags --abbrev=0}"
   release:
-    goreleaser release
+    cmds:
+      - rm -rf ./dist
+      - goreleaser release
+
