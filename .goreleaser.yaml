@@ -37,6 +37,9 @@ brews:
       email: bot@zengine.dev
     commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
     directory: Formula
+    repository:
+      owner: ZengineChris
+      name: homebrew-tap
     dependencies:
       - name: colima
         os: mac
@@ -44,7 +47,7 @@ brews:
       bin.install "devx"
 
 archives:
-  - format: tar.gz
+  - formats: ["tar.gz"]
     # this name template makes the OS and Arch compatible with the results of `uname`.
     name_template: >-
       {{ .ProjectName }}_
@@ -53,10 +56,6 @@ archives:
       {{- else if eq .Arch "386" }}i386
       {{- else }}{{ .Arch }}{{ end }}
       {{- if .Arm }}v{{ .Arm }}{{ end }}
-    # use zip for windows archives
-    format_overrides:
-      - goos: windows
-        format: zip
 
 changelog:
   sort: asc
