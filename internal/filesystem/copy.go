@@ -3,7 +3,6 @@ package filesystem
 import (
 	"fmt"
 	"io"
-	"io/fs"
 	"os"
 	"path/filepath"
 )
@@ -60,7 +59,6 @@ func copyFile(src, dst string) error {
 	return os.Chmod(dst, sourceInfo.Mode())
 }
 
-// copyDir recursively copies a directory from src to dst
 func copyDir(src, dst string) error {
 	fmt.Printf("Copying directory %s to %s\n", src, dst)
 
@@ -75,13 +73,11 @@ func copyDir(src, dst string) error {
 		return fmt.Errorf("error creating destination directory: %w", err)
 	}
 
-	// Walk through the source directory
-	return filepath.WalkDir(src, func(path string, d fs.DirEntry, err error) error {
+	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		// Skip the root directory
 		if path == src {
 			return nil
 		}
@@ -96,13 +92,16 @@ func copyDir(src, dst string) error {
 		destPath := filepath.Join(dst, relPath)
 
 		// Handle directories and files
-		if d.IsDir() {
-			info, err := d.Info()
-			if err != nil {
-				return fmt.Errorf("error getting directory info: %w", err)
-			}
+		if info.IsDir() {
+			os.Chmod(destPath, 0644)
 			return os.MkdirAll(destPath, info.Mode())
 		} else {
+			// For files, handle any dot files (hidden files) specially
+			baseName := filepath.Base(path)
+			if len(baseName) > 0 && baseName[0] == '.' {
+				fmt.Printf("Copying hidden file: %s\n", relPath)
+			}
+			os.Chmod(path, 0644)
 			return copyFile(path, destPath)
 		}
 	})

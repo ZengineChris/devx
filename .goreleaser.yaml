@@ -26,6 +26,23 @@ builds:
       - darwin
     main: cmd/devx/main.go
 
+brews:
+  - name: devx
+    homepage: "https://github.com/ZengineChris/devx"
+    description: "A short description of your app"
+    license: "MIT"
+
+    commit_author:
+      name: goreleaserbot
+      email: bot@zengine.dev
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    directory: Formula
+    dependencies:
+      - name: colima
+        os: mac
+    install: |
+      bin.install "devx"
+
 archives:
   - format: tar.gz
     # this name template makes the OS and Arch compatible with the results of `uname`.
@@ -51,9 +68,7 @@ changelog:
 release:
   github:
     owner: ZengineChris
-    name: ZengineChris
+    name: devx
   footer: >-
 
     ---
-
-    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
