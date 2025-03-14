@@ -210,7 +210,9 @@ func copyDirWithDockerignore(src, dst string, matcher *PatternMatcher) error {
 
 		// Handle directories and files
 		if info.IsDir() {
-			os.Chmod(destPath, 0644)
+			if err := os.Chmod(destPath, info.Mode()); err != nil {
+				return err
+			}
 			return os.MkdirAll(destPath, info.Mode())
 		} else {
 			// For files, handle any dot files (hidden files) specially
