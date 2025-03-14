@@ -53,7 +53,7 @@ var listProjectsCmd = &cobra.Command{
 		}
 
 		w := tabwriter.NewWriter(cmd.OutOrStdout(), 4, 8, 4, ' ', 0)
-		_, _ = fmt.Fprintln(w, "NAME\tCONTEXT\t")
+		_, _ = fmt.Fprintln(w, "NAME\tCONTEXT")
 
 		for _, pro := range config.Projects {
 			_, _ = fmt.Fprintf(w, "%s\t%s\n", pro.Name, pro.Context)

@@ -6,7 +6,9 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
+	"slices"
 )
 
 // PatternMatcher handles .dockerignore pattern matching
@@ -18,6 +20,7 @@ type PatternMatcher struct {
 type pattern struct {
 	val       string
 	isNegated bool
+	regex     *regexp.Regexp
 }
 
 // NewPatternMatcher creates a new pattern matcher from a list of .dockerignore patterns
@@ -33,16 +36,50 @@ func NewPatternMatcher(patterns []string) *PatternMatcher {
 			p = p[1:]
 		}
 
+		// Convert pattern to regex
+		regexPattern := patternToRegex(p)
+		regex, err := regexp.Compile("^" + regexPattern + "$")
+		if err != nil {
+			// Skip invalid patterns
+			fmt.Printf("Warning: Invalid pattern %s: %v\n", p, err)
+			continue
+		}
+
 		pm.patterns = append(pm.patterns, pattern{
 			val:       p,
 			isNegated: isNegated,
+			regex:     regex,
 		})
 	}
 
 	return pm
 }
 
-// Matches checks if a path matches any of the patterns
+func patternToRegex(pattern string) string {
+	// Escape regex special chars except those we're using for patterns
+	pattern = regexp.QuoteMeta(pattern)
+
+	// Restore pattern special chars that we escaped with QuoteMeta
+	pattern = strings.ReplaceAll(pattern, "\\*", "*")
+	pattern = strings.ReplaceAll(pattern, "\\?", "?")
+
+	// Handle double asterisk (match zero or more path segments)
+	pattern = strings.ReplaceAll(pattern, "**", ".*")
+
+	// Handle single asterisk (match anything except slashes)
+	pattern = strings.ReplaceAll(pattern, "*", "[^/]*")
+
+	// Handle question mark (match any single character except slashes)
+	pattern = strings.ReplaceAll(pattern, "?", "[^/]")
+
+	// Handle trailing slashes to match directories and their contents
+	if strings.HasSuffix(pattern, "/") {
+		pattern = pattern + ".*"
+	}
+
+	return pattern
+}
+
 func (pm *PatternMatcher) Matches(path string) bool {
 	// Last match determines the outcome
 	ignored := false
@@ -50,8 +87,31 @@ func (pm *PatternMatcher) Matches(path string) bool {
 	// Normalize path
 	path = filepath.ToSlash(path)
 
+	// Also check parent directories for matches
+	// This handles cases like "dir/" which should match "dir/subdir/file.txt"
+	pathSegments := strings.Split(path, "/")
+	var pathsToCheck []string
+
+	// Add the full path
+	pathsToCheck = append(pathsToCheck, path)
+
+	// Add each parent directory path
+	for i := len(pathSegments) - 1; i > 0; i-- {
+		parentPath := strings.Join(pathSegments[:i], "/")
+		pathsToCheck = append(pathsToCheck, parentPath)
+	}
+
 	for _, pattern := range pm.patterns {
-		matched := matchPattern(pattern.val, path)
+		// Check the actual path
+		matched := pattern.regex.MatchString(path)
+
+		// If not matched directly, check if any parent directory is matched
+		// by the pattern (for directory exclusion patterns)
+		if !matched && strings.HasSuffix(pattern.val, "/") {
+			if slices.ContainsFunc(pathsToCheck, pattern.regex.MatchString) {
+					matched = true
+				}
+		}
 
 		if matched {
 			ignored = !pattern.isNegated
@@ -59,43 +119,6 @@ func (pm *PatternMatcher) Matches(path string) bool {
 	}
 
 	return ignored
-}
-
-// matchPattern checks if a path matches a single pattern
-func matchPattern(pattern, path string) bool {
-	// Simple cases
-	if pattern == path {
-		return true
-	}
-
-	// Handle wildcard patterns
-	if strings.Contains(pattern, "*") {
-		// Handle patterns like *.txt
-		if strings.HasPrefix(pattern, "*") {
-			suffix := pattern[1:]
-			return strings.HasSuffix(path, suffix)
-		}
-
-		// Handle patterns like dir/*
-		if strings.HasSuffix(pattern, "*") {
-			prefix := pattern[:len(pattern)-1]
-			return strings.HasPrefix(path, prefix)
-		}
-
-		// Handle patterns like dir/*.txt
-		parts := strings.Split(pattern, "*")
-		if len(parts) == 2 {
-			return strings.HasPrefix(path, parts[0]) && strings.HasSuffix(path, parts[1])
-		}
-	}
-
-	// Handle directory patterns with trailing slash
-	if strings.HasSuffix(pattern, "/") {
-		return strings.HasPrefix(path, pattern) || path == pattern[:len(pattern)-1]
-	}
-
-	// Handle patterns like dir/ which should match dir and all its contents
-	return strings.HasPrefix(path, pattern+"/") || path == pattern
 }
 
 func CopyToTemp(source, tempDir string) error {
@@ -119,9 +142,6 @@ func CopyToTemp(source, tempDir string) error {
 		var matcher *PatternMatcher
 		if len(patterns) > 0 {
 			matcher = NewPatternMatcher(patterns)
-			if err != nil {
-				return fmt.Errorf("error creating pattern matcher: %w", err)
-			}
 		}
 
 		// replace
@@ -213,54 +233,6 @@ func copyDirWithDockerignore(src, dst string, matcher *PatternMatcher) error {
 			if err := os.Chmod(destPath, info.Mode()); err != nil {
 				return err
 			}
-			return os.MkdirAll(destPath, info.Mode())
-		} else {
-			// For files, handle any dot files (hidden files) specially
-			baseName := filepath.Base(path)
-			if len(baseName) > 0 && baseName[0] == '.' {
-				fmt.Printf("Copying hidden file: %s\n", relPath)
-			}
-			os.Chmod(path, 0644)
-			return copyFile(path, destPath)
-		}
-	})
-}
-
-func copyDir(src, dst string) error {
-	fmt.Printf("Copying directory %s to %s\n", src, dst)
-
-	// Create the destination directory
-	sourceInfo, err := os.Stat(src)
-	if err != nil {
-		return fmt.Errorf("error getting source directory info: %w", err)
-	}
-
-	err = os.MkdirAll(dst, sourceInfo.Mode())
-	if err != nil {
-		return fmt.Errorf("error creating destination directory: %w", err)
-	}
-
-	return filepath.Walk(src, func(path string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		if path == src {
-			return nil
-		}
-
-		// Calculate the relative path from source
-		relPath, err := filepath.Rel(src, path)
-		if err != nil {
-			return fmt.Errorf("error calculating relative path: %w", err)
-		}
-
-		// Calculate the destination path
-		destPath := filepath.Join(dst, relPath)
-
-		// Handle directories and files
-		if info.IsDir() {
-			os.Chmod(destPath, 0644)
 			return os.MkdirAll(destPath, info.Mode())
 		} else {
 			// For files, handle any dot files (hidden files) specially
