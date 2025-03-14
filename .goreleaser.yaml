@@ -29,7 +29,7 @@ builds:
 brews:
   - name: devx
     homepage: "https://github.com/ZengineChris/devx"
-    description: "A short description of your app"
+    description: "DevX is a command-line tool designed to simplify the development workflow for containerized applications. It helps developers manage projects, build Docker images, and update deployments in Kubernetes environments."
     license: "MIT"
 
     commit_author:

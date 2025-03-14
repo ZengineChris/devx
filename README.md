@@ -1,6 +1,8 @@
 # DevX CLI
 [![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FZengineChris%2Fdevx.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FZengineChris%2Fdevx?ref=badge_shield)
 
+DevX is a command-line tool designed to simplify the development workflow for containerized applications. It helps developers manage projects, build Docker images, and update deployments in Kubernetes environments.
+
 ## Prerequisites
 
 - [Colima](https://github.com/abiosoft/colima) for local Kubernetes development
