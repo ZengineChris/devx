@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"strings"
 	"slices"
+	"strings"
 )
 
 // PatternMatcher handles .dockerignore pattern matching
@@ -56,23 +56,40 @@ func NewPatternMatcher(patterns []string) *PatternMatcher {
 }
 
 func patternToRegex(pattern string) string {
-	// Escape regex special chars except those we're using for patterns
-	pattern = regexp.QuoteMeta(pattern)
+	// First, escape regex special chars except those we're using for patterns
+	escapedPattern := regexp.QuoteMeta(pattern)
 
 	// Restore pattern special chars that we escaped with QuoteMeta
-	pattern = strings.ReplaceAll(pattern, "\\*", "*")
-	pattern = strings.ReplaceAll(pattern, "\\?", "?")
+	escapedPattern = strings.ReplaceAll(escapedPattern, "\\*", "*")
+	escapedPattern = strings.ReplaceAll(escapedPattern, "\\?", "?")
 
-	// Handle double asterisk (match zero or more path segments)
-	pattern = strings.ReplaceAll(pattern, "**", ".*")
+	// Create a result buffer
+	var result strings.Builder
 
-	// Handle single asterisk (match anything except slashes)
-	pattern = strings.ReplaceAll(pattern, "*", "[^/]*")
-
-	// Handle question mark (match any single character except slashes)
-	pattern = strings.ReplaceAll(pattern, "?", "[^/]")
+	// Process the pattern in a single pass
+	i := 0
+	for i < len(escapedPattern) {
+		if i+1 < len(escapedPattern) && escapedPattern[i:i+2] == "**" {
+			// Handle double asterisk (match zero or more path segments)
+			result.WriteString(".*")
+			i += 2
+		} else if escapedPattern[i] == '*' {
+			// Handle single asterisk (match anything except slashes)
+			result.WriteString("[^/]*")
+			i++
+		} else if escapedPattern[i] == '?' {
+			// Handle question mark (match any single character except slashes)
+			result.WriteString("[^/]")
+			i++
+		} else {
+			// Copy character as is
+			result.WriteByte(escapedPattern[i])
+			i++
+		}
+	}
 
 	// Handle trailing slashes to match directories and their contents
+	pattern = result.String()
 	if strings.HasSuffix(pattern, "/") {
 		pattern = pattern + ".*"
 	}
@@ -109,8 +126,8 @@ func (pm *PatternMatcher) Matches(path string) bool {
 		// by the pattern (for directory exclusion patterns)
 		if !matched && strings.HasSuffix(pattern.val, "/") {
 			if slices.ContainsFunc(pathsToCheck, pattern.regex.MatchString) {
-					matched = true
-				}
+				matched = true
+			}
 		}
 
 		if matched {
