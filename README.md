@@ -67,6 +67,31 @@ devx e <project-name> docker
 ```
 Opens the project's Dockerfile in your default editor for modification.
 
+##### For more configuration edit the project in the devx config file
+```bash
+cd ~.config/devx
+```
+Here you can find a devx.toml file that contains all of your configured projects.
+The file looks a like that: 
+```yaml
+[[projects]]
+name = 'ui'
+context = '/Users/chris/github.com/project/ui' # this is the current building context that can be set by the cli
+config_path = '/Users/cbartelt/.config/devx/projects/ui' # project specific configuration like the Dockerfile
+contexts = [] # additional files and folders that are copied to the build context
+deployment_name = 'ui' # the kubernetes deployment name. The building command will update this with the built image tag
+namespace = 'default' # the namespace the deployment is in
+
+[[projects]]
+name = 'api'
+context = ''
+config_path = '/Users/cbartelt/.config/devx/projects/api'
+contexts = []
+deployment_name = 'api'
+namespace = 'default'
+```
+
+
 #### Build and Deploy Project
 ```bash
 devx build <project-name>
