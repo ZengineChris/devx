@@ -5,6 +5,7 @@ go 1.23.0
 toolchain go1.23.4
 
 require (
+	github.com/docker/docker v28.0.1+incompatible
 	github.com/pelletier/go-toml/v2 v2.2.3
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1

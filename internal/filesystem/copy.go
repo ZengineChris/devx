@@ -1,11 +1,142 @@
 package filesystem
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
+	"slices"
+	"strings"
 )
+
+// PatternMatcher handles .dockerignore pattern matching
+type PatternMatcher struct {
+	patterns []pattern
+}
+
+// pattern represents a single .dockerignore pattern
+type pattern struct {
+	val       string
+	isNegated bool
+	regex     *regexp.Regexp
+}
+
+// NewPatternMatcher creates a new pattern matcher from a list of .dockerignore patterns
+func NewPatternMatcher(patterns []string) *PatternMatcher {
+	pm := &PatternMatcher{
+		patterns: make([]pattern, 0, len(patterns)),
+	}
+
+	for _, p := range patterns {
+		isNegated := false
+		if strings.HasPrefix(p, "!") {
+			isNegated = true
+			p = p[1:]
+		}
+
+		// Convert pattern to regex
+		regexPattern := patternToRegex(p)
+		regex, err := regexp.Compile("^" + regexPattern + "$")
+		if err != nil {
+			// Skip invalid patterns
+			fmt.Printf("Warning: Invalid pattern %s: %v\n", p, err)
+			continue
+		}
+
+		pm.patterns = append(pm.patterns, pattern{
+			val:       p,
+			isNegated: isNegated,
+			regex:     regex,
+		})
+	}
+
+	return pm
+}
+
+func patternToRegex(pattern string) string {
+	// First, escape regex special chars except those we're using for patterns
+	escapedPattern := regexp.QuoteMeta(pattern)
+
+	// Restore pattern special chars that we escaped with QuoteMeta
+	escapedPattern = strings.ReplaceAll(escapedPattern, "\\*", "*")
+	escapedPattern = strings.ReplaceAll(escapedPattern, "\\?", "?")
+
+	// Create a result buffer
+	var result strings.Builder
+
+	// Process the pattern in a single pass
+	i := 0
+	for i < len(escapedPattern) {
+		if i+1 < len(escapedPattern) && escapedPattern[i:i+2] == "**" {
+			// Handle double asterisk (match zero or more path segments)
+			result.WriteString(".*")
+			i += 2
+		} else if escapedPattern[i] == '*' {
+			// Handle single asterisk (match anything except slashes)
+			result.WriteString("[^/]*")
+			i++
+		} else if escapedPattern[i] == '?' {
+			// Handle question mark (match any single character except slashes)
+			result.WriteString("[^/]")
+			i++
+		} else {
+			// Copy character as is
+			result.WriteByte(escapedPattern[i])
+			i++
+		}
+	}
+
+	// Handle trailing slashes to match directories and their contents
+	pattern = result.String()
+	if strings.HasSuffix(pattern, "/") {
+		pattern = pattern + ".*"
+	}
+
+	return pattern
+}
+
+func (pm *PatternMatcher) Matches(path string) bool {
+	// Last match determines the outcome
+	ignored := false
+
+	// Normalize path
+	path = filepath.ToSlash(path)
+
+	// Also check parent directories for matches
+	// This handles cases like "dir/" which should match "dir/subdir/file.txt"
+	pathSegments := strings.Split(path, "/")
+	var pathsToCheck []string
+
+	// Add the full path
+	pathsToCheck = append(pathsToCheck, path)
+
+	// Add each parent directory path
+	for i := len(pathSegments) - 1; i > 0; i-- {
+		parentPath := strings.Join(pathSegments[:i], "/")
+		pathsToCheck = append(pathsToCheck, parentPath)
+	}
+
+	for _, pattern := range pm.patterns {
+		// Check the actual path
+		matched := pattern.regex.MatchString(path)
+
+		// If not matched directly, check if any parent directory is matched
+		// by the pattern (for directory exclusion patterns)
+		if !matched && strings.HasSuffix(pattern.val, "/") {
+			if slices.ContainsFunc(pathsToCheck, pattern.regex.MatchString) {
+				matched = true
+			}
+		}
+
+		if matched {
+			ignored = !pattern.isNegated
+		}
+	}
+
+	return ignored
+}
 
 func CopyToTemp(source, tempDir string) error {
 	sourceInfo, err := os.Stat(source)
@@ -19,7 +150,19 @@ func CopyToTemp(source, tempDir string) error {
 
 	// Handle directory copy
 	if sourceInfo.IsDir() {
-		return copyDir(source, destPath)
+
+		patterns, err := parseDockerignore(source)
+		if err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("error parsing .dockerignore: %w", err)
+		}
+
+		var matcher *PatternMatcher
+		if len(patterns) > 0 {
+			matcher = NewPatternMatcher(patterns)
+		}
+
+		// replace
+		return copyDirWithDockerignore(source, destPath, matcher)
 	}
 
 	// Handle file copy
@@ -59,8 +202,8 @@ func copyFile(src, dst string) error {
 	return os.Chmod(dst, sourceInfo.Mode())
 }
 
-func copyDir(src, dst string) error {
-	fmt.Printf("Copying directory %s to %s\n", src, dst)
+func copyDirWithDockerignore(src, dst string, matcher *PatternMatcher) error {
+	fmt.Printf("Copying directory %s to %s (with .dockerignore support)\n", src, dst)
 
 	// Create the destination directory
 	sourceInfo, err := os.Stat(src)
@@ -88,12 +231,25 @@ func copyDir(src, dst string) error {
 			return fmt.Errorf("error calculating relative path: %w", err)
 		}
 
+		// Check if file should be ignored (if we have a matcher)
+		if matcher != nil {
+			if matcher.Matches(relPath) {
+				fmt.Printf("Ignoring %s (matched .dockerignore rule)\n", relPath)
+				if info.IsDir() {
+					return filepath.SkipDir
+				}
+				return nil
+			}
+		}
+
 		// Calculate the destination path
 		destPath := filepath.Join(dst, relPath)
 
 		// Handle directories and files
 		if info.IsDir() {
-			os.Chmod(destPath, 0644)
+			if err := os.Chmod(destPath, info.Mode()); err != nil {
+				return err
+			}
 			return os.MkdirAll(destPath, info.Mode())
 		} else {
 			// For files, handle any dot files (hidden files) specially
@@ -105,4 +261,42 @@ func copyDir(src, dst string) error {
 			return copyFile(path, destPath)
 		}
 	})
+}
+
+// parseDockerignore reads .dockerignore file and returns patterns
+func parseDockerignore(dir string) ([]string, error) {
+	dockerignorePath := filepath.Join(dir, ".dockerignore")
+
+	file, err := os.Open(dockerignorePath)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+
+	var patterns []string
+	scanner := bufio.NewScanner(file)
+
+	for scanner.Scan() {
+		pattern := strings.TrimSpace(scanner.Text())
+
+		// Skip comments and empty lines
+		if pattern == "" || strings.HasPrefix(pattern, "#") {
+			continue
+		}
+
+		// Handle negated patterns (those starting with !)
+		if strings.HasPrefix(pattern, "!") {
+			pattern = "!" + filepath.ToSlash(pattern[1:])
+		} else {
+			pattern = filepath.ToSlash(pattern)
+		}
+
+		patterns = append(patterns, pattern)
+	}
+
+	if err := scanner.Err(); err != nil {
+		return nil, err
+	}
+
+	return patterns, nil
 }
