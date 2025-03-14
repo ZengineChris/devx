@@ -61,7 +61,7 @@ func CreateIfNotExists(path string, isDir bool) error {
 			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 				return err
 			}
-			f, err := os.OpenFile(path, os.O_CREATE, 0o755)
+			f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY, 0o644)
 			if err != nil {
 				return err
 			}
