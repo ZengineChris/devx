@@ -1,7 +1,6 @@
 package root
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/sirupsen/logrus"
@@ -11,11 +10,10 @@ import (
 
 var rootCmd = &cobra.Command{
 	Use:     "devx",
-	Short:   "Opiniated local develepment",
+	Short:   "Opiniated local development",
 	Version: config.AppVersion().Version,
 	Run:     func(cmd *cobra.Command, args []string) {},
 	PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-		fmt.Println(cmd.Name())
 		if err := initLog(); err != nil {
 			return err
 		}
