@@ -2,7 +2,7 @@
   description = "DevX development tool";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     flake-utils.url = "github:numtide/flake-utils";
     flake-compat = {
       url = "github:edolstra/flake-compat";
@@ -24,7 +24,7 @@
     flake-utils.lib.eachDefaultSystem (system: let
       pkgs = nixpkgs.legacyPackages.${system};
 
-      devx = pkgs.buildGo123Module {
+      devx = pkgs.buildGo124Module {
         pname = "devx";
         version = "0.1.0";
         src = ./.;
@@ -48,7 +48,7 @@
 
       devShells.${system}.default = pkgs.mkShell {
         buildInputs = with pkgs; [
-          go_1_23
+          go_1_24
           git
           gotools
           golangci-lint
@@ -60,7 +60,7 @@
         ];
 
         shellHook = ''
-          ${pkgs.go_1_23}/bin/go version
+          ${pkgs.go_1_24}/bin/go version
         '';
       };
 
