@@ -56,7 +56,6 @@
           gopls
           go-outline
           gopkgs
-          nur.repos.goreleaser.goreleaser
         ];
 
         shellHook = ''
