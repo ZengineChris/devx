@@ -10,8 +10,40 @@ DevX is a command-line tool designed to simplify the development workflow for co
 
 ## Installation
 
+### Homebrew
 ```bash
-# Installation instructions to be added
+brew install zenginechris/tap/devx
+```
+
+### Nix Flake
+```bash
+{
+  inputs = {
+    devx = {
+      url = "github:zenginechris/devx";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+  };
+
+  outputs = {
+    devx
+  } @ inputs: let
+    configuration = {pkgs, ...}: {
+      nixpkgs.overlays = [
+        (final: prev: {
+          devx-cli = devx.packages.${prev.system}.default;
+        })
+      ];
+      environment.systemPackages = [
+        pkgs.devx-cli
+      ];
+  };
+}
+```
+
+### Nix NUR
+```bast
+coming soon
 ```
 
 ## Setting Up the Environment
